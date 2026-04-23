@@ -787,7 +787,7 @@
       <div class="logo-sub">streaming availability / us</div>
     </div>
     <div class="header-right">
-      powered by claude + tmdb
+      powered by tmdb
     </div>
   </header>
 
@@ -851,35 +851,117 @@ const TMDB_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyNWIxYzJkMTc0NDMxMjljZWYwMTk
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const TMDB_HEADERS = { Authorization: `Bearer ${TMDB_TOKEN}`, "Content-Type": "application/json" };
 
-// TMDB provider ID → display name + free flag
-const PROVIDER_MAP = {
-  8:   { name: "Netflix",        free: false },
-  9:   { name: "Prime Video",    free: false },
-  15:  { name: "Hulu",           free: false },
-  337: { name: "Disney+",        free: false },
-  384: { name: "Max",            free: false },
-  386: { name: "Peacock",        free: false },
-  387: { name: "Peacock",        free: true  },
-  531: { name: "Paramount+",     free: false },
-  350: { name: "Apple TV+",      free: false },
-  2:   { name: "Apple TV",       free: false },
-  73:  { name: "Tubi",           free: true  },
-  300: { name: "Pluto TV",       free: true  },
-  538: { name: "Plex",           free: true  },
-  204: { name: "Crackle",        free: true  },
-  613: { name: "Freevee",        free: true  },
-  10:  { name: "Amazon Video",   free: false },
-  283: { name: "Crunchyroll",    free: false },
-  190: { name: "Britbox",        free: false },
-  123: { name: "Fandango",       free: false },
-  257: { name: "fuboTV",         free: false },
+// Free provider IDs from TMDB US catalog (exhaustive)
+const FREE_PROVIDER_IDS = new Set([
+  73,   // Tubi
+  300,  // Pluto TV
+  538,  // Plex
+  613,  // Freevee / Prime Video with Ads
+  235,  // YouTube Free
+  332,  // Fandango at Home Free
+  638,  // Public Domain Movies
+  191,  // Kanopy
+  212,  // Hoopla
+  207,  // The Roku Channel
+  83,   // The CW
+  209,  // PBS
+  211,  // Freeform
+  439,  // Shout! Factory TV
+  446,  // Retrocrush
+  1963, // Xumo Play
+  1971, // DistroTV
+  1990, // GlewedTV
+  1960, // Midnight Pulp
+  2409, // Fawesome
+  457,  // ViX (free tier)
+  514,  // AsianCrush
+  368,  // IndieFlix
+  2239, // FlixHouse
+  1875, // Runtime
+]);
+
+// Canonical display names (collapse channel variants into one name)
+const PROVIDER_NAMES = {
+  8:    "Netflix",
+  1796: "Netflix",
+  9:    "Prime Video",
+  613:  "Freevee",
+  15:   "Hulu",
+  337:  "Disney+",
+  508:  "Disney+",
+  384:  "Max",
+  1899: "Max",
+  1825: "Max",
+  386:  "Peacock",
+  531:  "Paramount+",
+  582:  "Paramount+",
+  2303: "Paramount+",
+  2616: "Paramount+",
+  633:  "Paramount+",
+  350:  "Apple TV+",
+  2:    "Apple TV",
+  257:  "fuboTV",
+  2528: "YouTube TV",
+  43:   "Starz",
+  1794: "Starz",
+  634:  "Starz",
+  1855: "Starz",
+  34:   "MGM+",
+  583:  "MGM+",
+  636:  "MGM+",
+  526:  "AMC+",
+  528:  "AMC+",
+  635:  "AMC+",
+  1854: "AMC+",
+  283:  "Crunchyroll",
+  1968: "Crunchyroll",
+  190:  "Britbox",
+  197:  "Britbox",
+  1852: "Britbox",
+  258:  "Criterion Channel",
+  520:  "Discovery+",
+  584:  "Discovery+",
+  430:  "HiDive",
+  11:   "MUBI",
+  201:  "MUBI",
+  25:   "Fandor",
+  199:  "Fandor",
+  191:  "Kanopy",
+  212:  "Hoopla",
+  73:   "Tubi",
+  300:  "Pluto TV",
+  538:  "Plex",
+  207:  "The Roku Channel",
+  83:   "The CW",
+  209:  "PBS",
+  235:  "YouTube",
+  192:  "YouTube",
+  439:  "Shout! Factory TV",
+  457:  "ViX",
+  1963: "Xumo Play",
+  2409: "Fawesome",
+  1957: "Cineverse",
+  1956: "Angel Studios",
+  331:  "FlixFling",
+  692:  "Cultpix",
+  260:  "WWE Network",
+  278:  "Pure Flix",
+  344:  "Viki",
+  361:  "TCM",
+  318:  "Adult Swim",
+  190:  "Curiosity Stream",
 };
+
+function resolveProvider(p, forceFree = false) {
+  const name = PROVIDER_NAMES[p.provider_id] || p.provider_name;
+  const free = forceFree || FREE_PROVIDER_IDS.has(p.provider_id);
+  return { name, free };
+}
 
 async function tmdbSearch(query) {
   const url = `${TMDB_BASE}/search/multi?query=${encodeURIComponent(query)}&language=en-US&page=1`;
   const res = await fetch(url, { headers: TMDB_HEADERS });
   const data = await res.json();
-  // prefer movies then TV, skip people
   const result = data.results?.find(r => r.media_type === 'movie' || r.media_type === 'tv');
   return result || null;
 }
@@ -894,32 +976,17 @@ async function tmdbProviders(id, mediaType) {
   const services = [];
   const seen = new Set();
 
-  // flatrate = subscription streaming
-  for (const p of (us.flatrate || [])) {
-    const mapped = PROVIDER_MAP[p.provider_id];
-    if (mapped && !seen.has(mapped.name)) {
-      seen.add(mapped.name);
-      services.push({ name: mapped.name, free: false, leaving_soon: false });
+  const add = (p, forceFree = false) => {
+    const { name, free } = resolveProvider(p, forceFree);
+    if (!seen.has(name)) {
+      seen.add(name);
+      services.push({ name, free, leaving_soon: false });
     }
-  }
-  // free = ad-supported free
-  for (const p of (us.free || [])) {
-    const mapped = PROVIDER_MAP[p.provider_id];
-    const label = mapped?.name || p.provider_name;
-    if (!seen.has(label)) {
-      seen.add(label);
-      services.push({ name: label, free: true, leaving_soon: false });
-    }
-  }
-  // ads = also free
-  for (const p of (us.ads || [])) {
-    const mapped = PROVIDER_MAP[p.provider_id];
-    const label = mapped?.name || p.provider_name;
-    if (!seen.has(label)) {
-      seen.add(label);
-      services.push({ name: label, free: true, leaving_soon: false });
-    }
-  }
+  };
+
+  for (const p of (us.flatrate || [])) add(p);
+  for (const p of (us.free || [])) add(p, true);
+  for (const p of (us.ads || [])) add(p, true);
 
   return services;
 }
