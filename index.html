@@ -1174,13 +1174,9 @@ async function doSearch() {
     const tmdbResults = await tmdbSearch(query);
     if (!tmdbResults.length) { showError('title not found'); return; }
 
-    // If only one result or exact match, go straight to it
-    const exactMatch = tmdbResults.find(r =>
-      (r.title || r.name || '').toLowerCase() === query.toLowerCase()
-    );
-
-    if (tmdbResults.length === 1 || exactMatch) {
-      const r = exactMatch || tmdbResults[0];
+    // Always show picker if multiple results — let user choose
+    if (tmdbResults.length === 1) {
+      const r = tmdbResults[0];
       const displayTitle = r.title || r.name;
       const year = (r.release_date || r.first_air_date || '').slice(0, 4);
       showLoader('fetching streaming data...');
@@ -1199,7 +1195,7 @@ async function doSearch() {
       lastResult = result;
       renderResult(result);
     } else {
-      // Multiple results — let user pick
+      // Multiple results — always let user pick
       showDisambiguation(tmdbResults, query);
     }
   } catch (err) {
