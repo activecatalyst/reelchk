@@ -786,6 +786,9 @@
       <div class="logo">reel<span>.</span>chk</div>
       <div class="logo-sub">streaming availability / us</div>
     </div>
+    <div class="header-right">
+      powered by claude + tmdb
+    </div>
   </header>
 
   <section class="search-section">
@@ -844,15 +847,130 @@
 
 <script>
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
+const TMDB_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyNWIxYzJkMTc0NDMxMjljZWYwMTk1OGY4MzlmMTIxZiIsIm5iZiI6MTc3NjkzMDk3OC40NzQsInN1YiI6IjY5ZTlkMGEyYjk3ZGQyNzJmZGJjYjNjNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xahHJog2JWyFHADPZIcYwANT9Zv0mok9PNmENM64vTw";
+const TMDB_BASE = "https://api.themoviedb.org/3";
+const TMDB_HEADERS = { Authorization: `Bearer ${TMDB_TOKEN}`, "Content-Type": "application/json" };
+
+// TMDB provider ID → display name + free flag
+const PROVIDER_MAP = {
+  8:   { name: "Netflix",        free: false },
+  9:   { name: "Prime Video",    free: false },
+  15:  { name: "Hulu",           free: false },
+  337: { name: "Disney+",        free: false },
+  384: { name: "Max",            free: false },
+  386: { name: "Peacock",        free: false },
+  387: { name: "Peacock",        free: true  },
+  531: { name: "Paramount+",     free: false },
+  350: { name: "Apple TV+",      free: false },
+  2:   { name: "Apple TV",       free: false },
+  73:  { name: "Tubi",           free: true  },
+  300: { name: "Pluto TV",       free: true  },
+  538: { name: "Plex",           free: true  },
+  204: { name: "Crackle",        free: true  },
+  613: { name: "Freevee",        free: true  },
+  10:  { name: "Amazon Video",   free: false },
+  283: { name: "Crunchyroll",    free: false },
+  190: { name: "Britbox",        free: false },
+  123: { name: "Fandango",       free: false },
+  257: { name: "fuboTV",         free: false },
+};
+
+async function tmdbSearch(query) {
+  const url = `${TMDB_BASE}/search/multi?query=${encodeURIComponent(query)}&language=en-US&page=1`;
+  const res = await fetch(url, { headers: TMDB_HEADERS });
+  const data = await res.json();
+  // prefer movies then TV, skip people
+  const result = data.results?.find(r => r.media_type === 'movie' || r.media_type === 'tv');
+  return result || null;
+}
+
+async function tmdbProviders(id, mediaType) {
+  const url = `${TMDB_BASE}/${mediaType}/${id}/watch/providers`;
+  const res = await fetch(url, { headers: TMDB_HEADERS });
+  const data = await res.json();
+  const us = data.results?.US;
+  if (!us) return [];
+
+  const services = [];
+  const seen = new Set();
+
+  // flatrate = subscription streaming
+  for (const p of (us.flatrate || [])) {
+    const mapped = PROVIDER_MAP[p.provider_id];
+    if (mapped && !seen.has(mapped.name)) {
+      seen.add(mapped.name);
+      services.push({ name: mapped.name, free: false, leaving_soon: false });
+    }
+  }
+  // free = ad-supported free
+  for (const p of (us.free || [])) {
+    const mapped = PROVIDER_MAP[p.provider_id];
+    const label = mapped?.name || p.provider_name;
+    if (!seen.has(label)) {
+      seen.add(label);
+      services.push({ name: label, free: true, leaving_soon: false });
+    }
+  }
+  // ads = also free
+  for (const p of (us.ads || [])) {
+    const mapped = PROVIDER_MAP[p.provider_id];
+    const label = mapped?.name || p.provider_name;
+    if (!seen.has(label)) {
+      seen.add(label);
+      services.push({ name: label, free: true, leaving_soon: false });
+    }
+  }
+
+  return services;
+}
+
+async function claudeMeta(title, year, mediaType, services) {
+  const serviceList = services.map(s => s.name).join(', ') || 'none';
+  const res = await fetch(ANTHROPIC_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 800,
+      system: `You are a film and TV expert. Given a title, respond ONLY with valid JSON — no markdown, no backticks, no preamble.
+
+Format:
+{
+  "synopsis": "1-2 sentence spoiler-free description. Punchy and engaging.",
+  "franchise": {
+    "name": "Franchise Name",
+    "entries": [
+      {"title": "Entry Title", "service": "Netflix", "free": false}
+    ]
+  },
+  "suggestions": [
+    {"title": "Similar Title", "service": "Max", "free": false}
+  ]
+}
+
+Rules:
+- "synopsis": always provide, 1-2 sentences max
+- "franchise": only if the title is part of a series/trilogy/franchise with other entries. Omit entirely if standalone. For franchise entries, list the service each is currently streaming on in the US.
+- "suggestions": 4 similar titles to watch if the title is NOT currently streaming (services list is "none"), else empty array []
+- Keep everything concise and accurate`,
+      messages: [{ role: 'user', content: `Title: "${title}" (${year}, ${mediaType}). Currently streaming on: ${serviceList}.` }]
+    })
+  });
+  const data = await res.json();
+  const text = data.content?.find(b => b.type === 'text')?.text || '{}';
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
 
 // State
 let watchlist = JSON.parse(localStorage.getItem('reelchk_watchlist') || '[]');
 let history = JSON.parse(localStorage.getItem('reelchk_history') || '[]');
 let currentFilter = 'all';
 let lastResult = null;
-
-// Free streaming services
-const FREE_SERVICES = ['tubi', 'pluto tv', 'peacock', 'crackle', 'kanopy', 'hoopla', 'plex', 'youtube', 'freevee', 'amazon freevee'];
 
 // Elements
 const searchInput = document.getElementById('searchInput');
@@ -893,68 +1011,43 @@ async function doSearch() {
   if (!query) return;
 
   addToHistory(query);
-  showLoader();
+  showLoader('searching tmdb...');
 
   try {
-    const response = await fetch(ANTHROPIC_API, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: `You are a streaming availability expert for the US market. When given a movie or TV show title, respond ONLY with valid JSON — no markdown, no backticks, no preamble.
+    // Step 1: find the title on TMDB
+    const tmdbResult = await tmdbSearch(query);
+    if (!tmdbResult) { showError('title not found'); return; }
 
-Format:
-{
-  "title": "Exact Title",
-  "year": "YYYY",
-  "synopsis": "A 1-2 sentence description of the film or show. Engaging, no spoilers.",
-  "found": true,
-  "streaming": true,
-  "services": [
-    {"name": "Netflix", "free": false, "leaving_soon": false},
-    {"name": "Tubi", "free": true, "leaving_soon": true}
-  ],
-  "franchise": {
-    "name": "Franchise or Series Name",
-    "entries": [
-      {"title": "Film One", "service": "Netflix", "free": false},
-      {"title": "Film Two", "service": "Tubi", "free": true}
-    ]
-  },
-  "suggestions": [
-    {"title": "Similar Film", "service": "Max", "free": false},
-    {"title": "Another Film", "service": "Tubi", "free": true}
-  ]
-}
+    const { id, media_type, title, name, release_date, first_air_date, overview } = tmdbResult;
+    const displayTitle = title || name;
+    const year = (release_date || first_air_date || '').slice(0, 4);
 
-Rules:
-- "found": whether you recognize this title
-- "synopsis": 1-2 sentences, punchy and spoiler-free. Empty string if not found.
-- "streaming": true if available on ANY subscription or free streaming service in the US right now (not just rent/buy)
-- "services": list ONLY services where it streams via subscription or free (NOT rent/buy only). Empty array if none.
-- "leaving_soon": true if the title is known to be leaving that service within ~30 days. Default false if unknown.
-- "franchise": if this title is part of a film series, trilogy, or franchise (e.g. Marvel, Star Wars, Lord of the Rings, X trilogy), include the franchise object with all main entries and where each is currently streaming. Omit the franchise field entirely (don't include it) if it's a standalone film or series with no sequels/prequels.
-- "suggestions": 4 similar titles currently streaming if the title is not streaming, else empty array
-- "free": true only if available at no extra cost (ad-supported free tiers count, e.g. Tubi, Pluto, Peacock free tier, Plex free)
-- Be accurate as of early 2026. If unsure, say streaming: false and leaving_soon: false.`,
-        messages: [{ role: 'user', content: query }]
-      })
-    });
+    showLoader('fetching streaming data...');
 
-    const data = await response.json();
-    const text = data.content?.find(b => b.type === 'text')?.text || '{}';
-    const clean = text.replace(/```json|```/g, '').trim();
-    const result = JSON.parse(clean);
-    result.queryTitle = query;
+    // Step 2: get real streaming providers from TMDB
+    const services = await tmdbProviders(id, media_type);
+
+    showLoader('generating synopsis...');
+
+    // Step 3: Claude for synopsis, franchise, suggestions only
+    const meta = await claudeMeta(displayTitle, year, media_type, services);
+
+    const result = {
+      title: displayTitle,
+      year,
+      synopsis: meta.synopsis || overview || '',
+      streaming: services.length > 0,
+      services,
+      franchise: meta.franchise || null,
+      suggestions: meta.suggestions || [],
+      queryTitle: query
+    };
+
     lastResult = result;
     renderResult(result);
   } catch (err) {
-    showError();
+    console.error(err);
+    showError('error fetching data. try again.');
   }
 }
 
@@ -1042,7 +1135,7 @@ function renderResult(result) {
   `;
 }
 
-function showLoader() {
+function showLoader(msg = 'checking availability') {
   resultsArea.innerHTML = `
     <div class="loader">
       <div class="loader-dots">
@@ -1050,15 +1143,15 @@ function showLoader() {
         <div class="loader-dot"></div>
         <div class="loader-dot"></div>
       </div>
-      checking availability
+      ${msg}
     </div>
   `;
 }
 
-function showError() {
+function showError(msg = 'error checking availability. try again.') {
   resultsArea.innerHTML = `
     <div class="loader" style="color: var(--red)">
-      — error checking availability. try again.
+      — ${msg}
     </div>
   `;
 }
