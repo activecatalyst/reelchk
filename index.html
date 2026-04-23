@@ -347,6 +347,53 @@
     margin-bottom: 14px;
   }
 
+  /* DISAMBIGUATION */
+  .disambig-label {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+
+  .disambig-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px 16px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    margin-bottom: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .disambig-row:hover {
+    border-color: var(--accent-dim);
+    background: var(--bg3);
+  }
+
+  .disambig-row:hover .disambig-title {
+    color: var(--accent);
+  }
+
+  .disambig-title {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 17px;
+    color: var(--text);
+    transition: color 0.15s;
+  }
+
+  .disambig-meta {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
   /* SYNOPSIS */
   .card-synopsis {
     font-family: 'Instrument Serif', serif;
@@ -787,7 +834,7 @@
       <div class="logo-sub">streaming availability / us</div>
     </div>
     <div class="header-right">
-      powered by tmdb
+      powered by claude + tmdb
     </div>
   </header>
 
@@ -846,7 +893,7 @@
 </div>
 
 <script>
-const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_API = "https://reelchk-proxy.bk855b7qg8.workers.dev";
 const TMDB_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyNWIxYzJkMTc0NDMxMjljZWYwMTk1OGY4MzlmMTIxZiIsIm5iZiI6MTc3NjkzMDk3OC40NzQsInN1YiI6IjY5ZTlkMGEyYjk3ZGQyNzJmZGJjYjNjNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xahHJog2JWyFHADPZIcYwANT9Zv0mok9PNmENM64vTw";
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const TMDB_HEADERS = { Authorization: `Bearer ${TMDB_TOKEN}`, "Content-Type": "application/json" };
@@ -962,8 +1009,52 @@ async function tmdbSearch(query) {
   const url = `${TMDB_BASE}/search/multi?query=${encodeURIComponent(query)}&language=en-US&page=1`;
   const res = await fetch(url, { headers: TMDB_HEADERS });
   const data = await res.json();
-  const result = data.results?.find(r => r.media_type === 'movie' || r.media_type === 'tv');
-  return result || null;
+  // return top 5 movies/tv, skip people
+  return (data.results || [])
+    .filter(r => r.media_type === 'movie' || r.media_type === 'tv')
+    .slice(0, 5);
+}
+
+function showDisambiguation(results, query) {
+  resultsArea.innerHTML = `
+    <div class="results">
+      <div class="disambig-label">// which "${query}"?</div>
+      ${results.map(r => {
+        const title = r.title || r.name;
+        const year = (r.release_date || r.first_air_date || '').slice(0, 4);
+        const type = r.media_type === 'tv' ? 'series' : 'film';
+        return `
+          <div class="disambig-row" onclick="selectResult(${r.id}, '${r.media_type}', '${title.replace(/'/g,"\\'")}', '${year}', \`${(r.overview||'').replace(/`/g,"'").slice(0,200)}\`)">
+            <div class="disambig-title">${title}</div>
+            <div class="disambig-meta">${year ? year + ' · ' : ''}${type}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function selectResult(id, mediaType, title, year, overview) {
+  showLoader('fetching streaming data...');
+  try {
+    const services = await tmdbProviders(id, mediaType);
+    showLoader('generating synopsis...');
+    const meta = await claudeMeta(title, year, mediaType, services);
+    const result = {
+      title, year,
+      synopsis: meta.synopsis || overview || '',
+      streaming: services.length > 0,
+      services,
+      franchise: meta.franchise || null,
+      suggestions: meta.suggestions || [],
+      queryTitle: title
+    };
+    lastResult = result;
+    renderResult(result);
+  } catch (err) {
+    console.error(err);
+    showError('error fetching data. try again.');
+  }
 }
 
 async function tmdbProviders(id, mediaType) {
@@ -997,8 +1088,6 @@ async function claudeMeta(title, year, mediaType, services) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
@@ -1082,36 +1171,37 @@ async function doSearch() {
 
   try {
     // Step 1: find the title on TMDB
-    const tmdbResult = await tmdbSearch(query);
-    if (!tmdbResult) { showError('title not found'); return; }
+    const tmdbResults = await tmdbSearch(query);
+    if (!tmdbResults.length) { showError('title not found'); return; }
 
-    const { id, media_type, title, name, release_date, first_air_date, overview } = tmdbResult;
-    const displayTitle = title || name;
-    const year = (release_date || first_air_date || '').slice(0, 4);
+    // If only one result or exact match, go straight to it
+    const exactMatch = tmdbResults.find(r =>
+      (r.title || r.name || '').toLowerCase() === query.toLowerCase()
+    );
 
-    showLoader('fetching streaming data...');
-
-    // Step 2: get real streaming providers from TMDB
-    const services = await tmdbProviders(id, media_type);
-
-    showLoader('generating synopsis...');
-
-    // Step 3: Claude for synopsis, franchise, suggestions only
-    const meta = await claudeMeta(displayTitle, year, media_type, services);
-
-    const result = {
-      title: displayTitle,
-      year,
-      synopsis: meta.synopsis || overview || '',
-      streaming: services.length > 0,
-      services,
-      franchise: meta.franchise || null,
-      suggestions: meta.suggestions || [],
-      queryTitle: query
-    };
-
-    lastResult = result;
-    renderResult(result);
+    if (tmdbResults.length === 1 || exactMatch) {
+      const r = exactMatch || tmdbResults[0];
+      const displayTitle = r.title || r.name;
+      const year = (r.release_date || r.first_air_date || '').slice(0, 4);
+      showLoader('fetching streaming data...');
+      const services = await tmdbProviders(r.id, r.media_type);
+      showLoader('generating synopsis...');
+      const meta = await claudeMeta(displayTitle, year, r.media_type, services);
+      const result = {
+        title: displayTitle, year,
+        synopsis: meta.synopsis || r.overview || '',
+        streaming: services.length > 0,
+        services,
+        franchise: meta.franchise || null,
+        suggestions: meta.suggestions || [],
+        queryTitle: query
+      };
+      lastResult = result;
+      renderResult(result);
+    } else {
+      // Multiple results — let user pick
+      showDisambiguation(tmdbResults, query);
+    }
   } catch (err) {
     console.error(err);
     showError('error fetching data. try again.');
