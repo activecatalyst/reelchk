@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>reel.chk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #1a1a1a;
+    --border: #2a2a2a;
+    --border-bright: #3a3a3a;
+    --text: #e8e4dc;
+    --text-dim: #6b6560;
+    --text-muted: #3d3a36;
+    --accent: #e8c547;
+    --accent-dim: #b09a35;
+    --red: #c94a3a;
+    --green: #4a8c5c;
+    --grain-opacity: 0.035;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* GRAIN OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    opacity: var(--grain-opacity);
+    pointer-events: none;
+    z-index: 9999;
+    animation: grain 0.5s steps(1) infinite;
+  }
+
+  @keyframes grain {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-2%, -3%); }
+    20% { transform: translate(3%, 2%); }
+    30% { transform: translate(-1%, 4%); }
+    40% { transform: translate(2%, -1%); }
+    50% { transform: translate(-3%, 1%); }
+    60% { transform: translate(1%, -2%); }
+    70% { transform: translate(-2%, 3%); }
+    80% { transform: translate(3%, -3%); }
+    90% { transform: translate(-1%, 2%); }
+  }
+
+  /* LETTERBOX BARS */
+  body::after {
+    content: '';
+    position: fixed;
+    left: 0; right: 0;
+    height: 52px;
+    background: #000;
+    pointer-events: none;
+    z-index: 998;
+    top: 0;
+    box-shadow: 0 0 0 100vh transparent;
+  }
+
+  .letterbox-bottom {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    height: 52px;
+    background: #000;
+    pointer-events: none;
+    z-index: 998;
+  }
+
+  /* LAYOUT */
+  .wrap {
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 80px 24px 80px;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 56px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .logo-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  /* SEARCH SECTION */
+  .search-section {
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  .search-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border-bright);
+    background: var(--bg2);
+    transition: border-color 0.2s;
+  }
+
+  .search-row:focus-within {
+    border-color: var(--accent-dim);
+  }
+
+  .search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 14px 16px;
+    letter-spacing: 0.02em;
+    cursor: crosshair;
+  }
+
+  .search-input::placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .search-btn {
+    background: var(--accent);
+    border: none;
+    color: #000;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    padding: 0 22px;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+
+  .search-btn:hover {
+    background: #f0d060;
+  }
+
+  .search-btn:active {
+    background: var(--accent-dim);
+  }
+
+  /* FILTERS */
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .filter-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-chip:hover {
+    border-color: var(--border-bright);
+    color: var(--text);
+  }
+
+  .filter-chip.active {
+    border-color: var(--accent-dim);
+    color: var(--accent);
+    background: rgba(232, 197, 71, 0.06);
+  }
+
+  /* RESULTS */
+  .results {
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .results-title {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+
+  .results-meta {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* RESULT CARD */
+  .result-card {
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    margin-bottom: 2px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .result-card:hover {
+    border-color: var(--border-bright);
+  }
+
+  .card-top {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .card-accent-bar {
+    width: 3px;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .card-accent-bar.unavailable {
+    background: var(--text-muted);
+  }
+
+  .card-body {
+    flex: 1;
+    padding: 16px 18px;
+  }
+
+  .card-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .card-year {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  .card-status {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    margin-left: auto;
+  }
+
+  .card-status.streaming {
+    color: var(--green);
+    border: 1px solid rgba(74, 140, 92, 0.3);
+    background: rgba(74, 140, 92, 0.08);
+  }
+
+  .card-status.unavailable {
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .services-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .service-tag {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid var(--border-bright);
+    color: var(--text-dim);
+    background: var(--bg3);
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .service-tag:hover {
+    color: var(--text);
+    border-color: var(--accent-dim);
+  }
+
+  .service-tag.free {
+    border-color: rgba(74, 140, 92, 0.4);
+    color: var(--green);
+    background: rgba(74, 140, 92, 0.05);
+  }
+
+  .service-tag.free::before {
+    content: '✦ ';
+    font-size: 7px;
+  }
+
+  .no-stream-msg {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+    letter-spacing: 0.05em;
+  }
+
+  /* SUGGESTIONS SECTION */
+  .suggestions-section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .suggestions-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+
+  .suggestion-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .suggestion-row:last-child { border-bottom: none; }
+
+  .suggestion-row:hover .suggestion-title {
+    color: var(--accent);
+  }
+
+  .suggestion-num {
+    font-size: 10px;
+    color: var(--text-muted);
+    width: 16px;
+    flex-shrink: 0;
+  }
+
+  .suggestion-title {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--text);
+    transition: color 0.15s;
+    flex: 1;
+  }
+
+  .suggestion-service {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* WATCHLIST */
+  .watchlist-section {
+    margin-top: 48px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .clear-btn {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: color 0.15s;
+  }
+
+  .clear-btn:hover { color: var(--red); }
+
+  .watchlist-empty {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 16px 0;
+    letter-spacing: 0.05em;
+  }
+
+  .watchlist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeUp 0.3s ease both;
+  }
+
+  .watchlist-item:last-child { border-bottom: none; }
+
+  .wl-title {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 14px;
+    flex: 1;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .wl-title:hover { color: var(--accent); }
+
+  .wl-status {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .wl-status.streaming { color: var(--green); }
+  .wl-status.unavailable { color: var(--text-muted); }
+
+  .wl-remove {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    transition: color 0.15s;
+    font-family: 'DM Mono', monospace;
+    padding: 2px 4px;
+  }
+
+  .wl-remove:hover { color: var(--red); }
+
+  /* HISTORY */
+  .history-section {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .history-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .history-pill {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: none;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .history-pill:hover {
+    color: var(--text);
+    border-color: var(--border-bright);
+  }
+
+  /* LOADER */
+  .loader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 32px 0;
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .loader-dots {
+    display: flex;
+    gap: 4px;
+  }
+
+  .loader-dot {
+    width: 4px;
+    height: 4px;
+    background: var(--accent);
+    animation: pulse 1s ease infinite;
+  }
+
+  .loader-dot:nth-child(2) { animation-delay: 0.15s; }
+  .loader-dot:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.2; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.8); }
+  }
+
+  /* FOOTER */
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+  /* RESPONSIVE */
+  @media (max-width: 520px) {
+    .wrap { padding: 72px 16px 72px; }
+    .logo { font-size: 28px; }
+    .card-title { font-size: 16px; }
+  }
+
+  /* ADD TO WATCHLIST BUTTON */
+  .add-wl-btn {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.15s;
+    margin-top: 12px;
+  }
+
+  .add-wl-btn:hover {
+    border-color: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  .add-wl-btn.added {
+    border-color: rgba(74, 140, 92, 0.4);
+    color: var(--green);
+  }
+
+  /* FREE ONLY TOGGLE */
+  .free-badge {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(232, 197, 71, 0.3);
+    padding: 2px 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div class="letterbox-bottom"></div>
+
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="logo">reel<span>.</span>chk</div>
+      <div class="logo-sub">streaming availability / us</div>
+    </div>
+    <div class="header-right">
+      powered by claude<br>
+      data via justwatch
+    </div>
+  </header>
+
+  <section class="search-section">
+    <span class="search-label">// search title</span>
+    <div class="search-row">
+      <input
+        class="search-input"
+        id="searchInput"
+        type="text"
+        placeholder="film title, series..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button class="search-btn" id="searchBtn">CHK</button>
+    </div>
+    <div class="filters">
+      <button class="filter-chip active" data-filter="all">all</button>
+      <button class="filter-chip" data-filter="free">free only</button>
+      <button class="filter-chip" data-filter="subscription">subscription</button>
+    </div>
+  </section>
+
+  <div id="resultsArea"></div>
+
+  <section class="watchlist-section" id="watchlistSection">
+    <div class="section-header">
+      <span class="section-label">// watchlist</span>
+      <button class="clear-btn" id="clearWatchlist">clear all</button>
+    </div>
+    <div id="watchlistItems">
+      <div class="watchlist-empty">nothing saved yet — search a title and add it</div>
+    </div>
+  </section>
+
+  <section class="history-section" id="historySection" style="display:none">
+    <div class="section-header">
+      <span class="section-label">// recent searches</span>
+    </div>
+    <div class="history-pills" id="historyPills"></div>
+  </section>
+
+  <footer>
+    <span>reel.chk — 2026</span>
+    <span>us · english</span>
+  </footer>
+
+</div>
+
+<script>
+const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
+
+// State
+let watchlist = JSON.parse(localStorage.getItem('reelchk_watchlist') || '[]');
+let history = JSON.parse(localStorage.getItem('reelchk_history') || '[]');
+let currentFilter = 'all';
+let lastResult = null;
+
+// Free streaming services
+const FREE_SERVICES = ['tubi', 'pluto tv', 'peacock', 'crackle', 'kanopy', 'hoopla', 'plex', 'youtube', 'freevee', 'amazon freevee'];
+
+// Elements
+const searchInput = document.getElementById('searchInput');
+const searchBtn = document.getElementById('searchBtn');
+const resultsArea = document.getElementById('resultsArea');
+
+// Filter chips
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.filter;
+    if (lastResult) renderResult(lastResult);
+  });
+});
+
+// Search
+searchBtn.addEventListener('click', doSearch);
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+async function doSearch() {
+  const query = searchInput.value.trim();
+  if (!query) return;
+
+  addToHistory(query);
+  showLoader();
+
+  try {
+    const response = await fetch(ANTHROPIC_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are a streaming availability expert for the US market. When given a movie or TV show title, respond ONLY with valid JSON — no markdown, no backticks, no preamble.
+
+Format:
+{
+  "title": "Exact Title",
+  "year": "YYYY",
+  "found": true,
+  "streaming": true,
+  "services": [
+    {"name": "Netflix", "free": false},
+    {"name": "Tubi", "free": true}
+  ],
+  "suggestions": [
+    {"title": "Similar Film", "service": "Max", "free": false},
+    {"title": "Another Film", "service": "Tubi", "free": true}
+  ]
+}
+
+Rules:
+- "found": whether you recognize this title
+- "streaming": true if available on ANY subscription or free streaming service in the US right now (not just rent/buy)
+- "services": list ONLY services where it streams included in subscription or free (NOT rent/buy only). Empty array if none.
+- "suggestions": 4 similar titles currently streaming if the title is not streaming, else empty array
+- "free": true only if available at no extra cost (ad-supported free tiers count, e.g. Tubi, Pluto, Peacock free tier, Plex free)
+- Be accurate as of early 2026. If unsure, say streaming: false.`,
+        messages: [{ role: 'user', content: query }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || '{}';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(clean);
+    result.queryTitle = query;
+    lastResult = result;
+    renderResult(result);
+  } catch (err) {
+    showError();
+  }
+}
+
+function filterServices(services) {
+  if (!services) return [];
+  if (currentFilter === 'free') return services.filter(s => s.free);
+  if (currentFilter === 'subscription') return services.filter(s => !s.free);
+  return services;
+}
+
+function renderResult(result) {
+  const filtered = filterServices(result.services);
+  const isStreaming = result.streaming && filtered.length > 0;
+  const inWatchlist = watchlist.some(w => w.title === result.title);
+
+  const servicesHTML = filtered.length > 0
+    ? filtered.map(s => `<span class="service-tag ${s.free ? 'free' : ''}">${s.name}${s.free ? '' : ''}</span>`).join('')
+    : `<span class="no-stream-msg">${
+        currentFilter === 'free' ? 'not on any free service right now' :
+        currentFilter === 'subscription' ? 'not on any subscription service right now' :
+        'not streaming — rent/buy only'
+      }</span>`;
+
+  const suggestionsHTML = (!result.streaming || filtered.length === 0) && result.suggestions?.length > 0
+    ? `<div class="suggestions-section">
+        <div class="suggestions-label">// you might like</div>
+        ${result.suggestions.map((s, i) => `
+          <div class="suggestion-row" onclick="searchSuggestion('${s.title.replace(/'/g, "\\'")}')">
+            <span class="suggestion-num">0${i+1}</span>
+            <span class="suggestion-title">${s.title}</span>
+            <span class="suggestion-service">${s.service}${s.free ? ' <span class="free-badge">free</span>' : ''}</span>
+          </div>
+        `).join('')}
+      </div>` : '';
+
+  resultsArea.innerHTML = `
+    <div class="results">
+      <div class="results-header">
+        <div class="results-title">${result.title || result.queryTitle}</div>
+        <div class="results-meta">${result.year || ''}</div>
+      </div>
+      <div class="result-card">
+        <div class="card-top">
+          <div class="card-accent-bar ${isStreaming ? '' : 'unavailable'}"></div>
+          <div class="card-body">
+            <div class="card-title-row">
+              <span class="card-title">${result.title || result.queryTitle}</span>
+              ${result.year ? `<span class="card-year">${result.year}</span>` : ''}
+              <span class="card-status ${isStreaming ? 'streaming' : 'unavailable'}">
+                ${isStreaming ? 'streaming' : 'not streaming'}
+              </span>
+            </div>
+            <div class="services-list">${servicesHTML}</div>
+            <button class="add-wl-btn ${inWatchlist ? 'added' : ''}" onclick="toggleWatchlist('${(result.title || result.queryTitle).replace(/'/g, "\\'")}', ${result.streaming})">
+              ${inWatchlist ? '✓ in watchlist' : '+ watchlist'}
+            </button>
+          </div>
+        </div>
+      </div>
+      ${suggestionsHTML}
+    </div>
+  `;
+}
+
+function showLoader() {
+  resultsArea.innerHTML = `
+    <div class="loader">
+      <div class="loader-dots">
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+      </div>
+      checking availability
+    </div>
+  `;
+}
+
+function showError() {
+  resultsArea.innerHTML = `
+    <div class="loader" style="color: var(--red)">
+      — error checking availability. try again.
+    </div>
+  `;
+}
+
+function searchSuggestion(title) {
+  searchInput.value = title;
+  doSearch();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// WATCHLIST
+function toggleWatchlist(title, streaming) {
+  const idx = watchlist.findIndex(w => w.title === title);
+  if (idx > -1) {
+    watchlist.splice(idx, 1);
+  } else {
+    watchlist.push({ title, streaming });
+  }
+  localStorage.setItem('reelchk_watchlist', JSON.stringify(watchlist));
+  renderWatchlist();
+  if (lastResult) renderResult(lastResult);
+}
+
+function renderWatchlist() {
+  const container = document.getElementById('watchlistItems');
+  if (watchlist.length === 0) {
+    container.innerHTML = '<div class="watchlist-empty">nothing saved yet — search a title and add it</div>';
+    return;
+  }
+  container.innerHTML = watchlist.map(item => `
+    <div class="watchlist-item">
+      <span class="wl-title" onclick="searchSuggestion('${item.title.replace(/'/g, "\\'")}')">${item.title}</span>
+      <span class="wl-status ${item.streaming ? 'streaming' : 'unavailable'}">
+        ${item.streaming ? 'streaming' : 'not streaming'}
+      </span>
+      <button class="wl-remove" onclick="toggleWatchlist('${item.title.replace(/'/g, "\\'")}', ${item.streaming})">✕</button>
+    </div>
+  `).join('');
+}
+
+document.getElementById('clearWatchlist').addEventListener('click', () => {
+  watchlist = [];
+  localStorage.setItem('reelchk_watchlist', JSON.stringify(watchlist));
+  renderWatchlist();
+});
+
+// HISTORY
+function addToHistory(query) {
+  history = [query, ...history.filter(h => h !== query)].slice(0, 8);
+  localStorage.setItem('reelchk_history', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  if (history.length === 0) {
+    document.getElementById('historySection').style.display = 'none';
+    return;
+  }
+  document.getElementById('historySection').style.display = 'block';
+  document.getElementById('historyPills').innerHTML = history.map(h => `
+    <button class="history-pill" onclick="searchSuggestion('${h.replace(/'/g, "\\'")}')"> ${h}</button>
+  `).join('');
+}
+
+// INIT
+renderWatchlist();
+renderHistory();
+</script>
+</body>
+</html>
