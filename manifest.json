@@ -1,0 +1,25 @@
+{
+  "name": "reel.chk",
+  "short_name": "reel.chk",
+  "description": "Streaming availability checker",
+  "start_url": "/reelchk/",
+  "scope": "/reelchk/",
+  "display": "standalone",
+  "background_color": "#111110",
+  "theme_color": "#111110",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
