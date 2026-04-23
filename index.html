@@ -356,6 +356,17 @@
     margin-bottom: 14px;
   }
 
+  .disambig-list {
+    max-height: 480px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-bright) transparent;
+  }
+
+  .disambig-list::-webkit-scrollbar { width: 4px; }
+  .disambig-list::-webkit-scrollbar-track { background: transparent; }
+  .disambig-list::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
   .disambig-row {
     display: flex;
     align-items: baseline;
@@ -1040,17 +1051,19 @@ function showDisambiguation(results, query) {
   resultsArea.innerHTML = `
     <div class="results">
       <div class="disambig-label">// which "${query}"?</div>
-      ${results.map(r => {
-        const title = r.title || r.name;
-        const year = (r.release_date || r.first_air_date || '').slice(0, 4);
-        const type = r.media_type === 'tv' ? 'series' : 'film';
-        return `
-          <div class="disambig-row" onclick="selectResult(${r.id}, '${r.media_type}', '${title.replace(/'/g,"\\'")}', '${year}', \`${(r.overview||'').replace(/`/g,"'").slice(0,200)}\`)">
-            <div class="disambig-title">${title}</div>
-            <div class="disambig-meta">${year ? year + ' · ' : ''}${type}</div>
-          </div>
-        `;
-      }).join('')}
+      <div class="disambig-list">
+        ${results.map(r => {
+          const title = r.title || r.name;
+          const year = (r.release_date || r.first_air_date || '').slice(0, 4);
+          const type = r.media_type === 'tv' ? 'series' : 'film';
+          return `
+            <div class="disambig-row" onclick="selectResult(${r.id}, '${r.media_type}', '${title.replace(/'/g,"\\'")}', '${year}', \`${(r.overview||'').replace(/`/g,"'").slice(0,200)}\`)">
+              <div class="disambig-title">${title}</div>
+              <div class="disambig-meta">${year ? year + ' · ' : ''}${type}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
     </div>
   `;
 }
