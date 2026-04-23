@@ -1006,13 +1006,34 @@ function resolveProvider(p, forceFree = false) {
 }
 
 async function tmdbSearch(query) {
-  const url = `${TMDB_BASE}/search/multi?query=${encodeURIComponent(query)}&language=en-US&page=1`;
-  const res = await fetch(url, { headers: TMDB_HEADERS });
-  const data = await res.json();
-  // return top 5 movies/tv, skip people
-  return (data.results || [])
-    .filter(r => r.media_type === 'movie' || r.media_type === 'tv')
-    .slice(0, 5);
+  // Fetch 2 pages to get more results
+  const [res1, res2] = await Promise.all([
+    fetch(`${TMDB_BASE}/search/multi?query=${encodeURIComponent(query)}&language=en-US&page=1`, { headers: TMDB_HEADERS }),
+    fetch(`${TMDB_BASE}/search/multi?query=${encodeURIComponent(query)}&language=en-US&page=2`, { headers: TMDB_HEADERS }),
+  ]);
+  const [d1, d2] = await Promise.all([res1.json(), res2.json()]);
+
+  const combined = [
+    ...(d1.results || []),
+    ...(d2.results || []),
+  ].filter(r => r.media_type === 'movie' || r.media_type === 'tv');
+
+  // Deduplicate by id
+  const seen = new Set();
+  const unique = combined.filter(r => {
+    if (seen.has(r.id)) return false;
+    seen.add(r.id);
+    return true;
+  });
+
+  // Sort chronologically by release/air date
+  unique.sort((a, b) => {
+    const dateA = a.release_date || a.first_air_date || '';
+    const dateB = b.release_date || b.first_air_date || '';
+    return dateA.localeCompare(dateB);
+  });
+
+  return unique.slice(0, 15);
 }
 
 function showDisambiguation(results, query) {
