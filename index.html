@@ -800,7 +800,7 @@
         spellcheck="false"
       />
       <button class="clear-search-btn" id="clearSearch" title="Clear">✕</button>
-      <button class="search-btn" id="searchBtn">CHK</button>
+      <button class="search-btn" id="searchBtn">CHECK</button>
     </div>
     <div class="filters">
       <button class="filter-chip active" data-filter="all">all</button>
@@ -898,7 +898,11 @@ async function doSearch() {
   try {
     const response = await fetch(ANTHROPIC_API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
