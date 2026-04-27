@@ -32,7 +32,7 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  html { scroll-behavior: smooth; overflow: hidden; }
+  html { scroll-behavior: smooth; }
 
   body {
     overflow-x: hidden;
@@ -56,6 +56,7 @@
     pointer-events: none;
     z-index: 9999;
     animation: grain 0.5s steps(1) infinite;
+    clip-path: inset(60px);
   }
 
   @keyframes grain {
@@ -791,6 +792,255 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
+  /* TAB NAV */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  .tab-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.1em;
+    padding: 10px 24px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: -1px;
+  }
+
+  .tab-btn:hover { color: var(--text-dim); }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* CRITERION TAB */
+  .criterion-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .criterion-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .criterion-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* CRITERION FILTERS */
+  .criterion-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 28px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+  }
+
+  .cf-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .cf-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    width: 70px;
+    flex-shrink: 0;
+  }
+
+  .cf-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .cf-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .cf-chip:hover {
+    border-color: var(--border-bright);
+    color: var(--text);
+  }
+
+  .cf-chip.active {
+    border-color: var(--accent-dim);
+    color: var(--accent);
+    background: rgba(232, 197, 71, 0.08);
+  }
+
+  .cf-search {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    outline: none;
+    width: 240px;
+    transition: border-color 0.15s;
+  }
+
+  .cf-search:focus { border-color: var(--border-bright); }
+  .cf-search::placeholder { color: var(--text-muted); }
+
+  /* CRITERION GRID */
+  .criterion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 2px;
+  }
+
+  .criterion-loading {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 40px 0;
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .criterion-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .criterion-card:hover {
+    border-color: var(--accent-dim);
+    background: var(--bg3);
+  }
+
+  .criterion-card:hover .cc-title {
+    color: var(--accent);
+  }
+
+  .cc-spine {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .cc-title {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.3;
+    transition: color 0.15s;
+  }
+
+  .cc-director {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .cc-year {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .cc-services {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .cc-service-tag {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border: 1px solid var(--border-bright);
+    color: var(--text-dim);
+  }
+
+  .cc-service-tag.free {
+    border-color: rgba(90, 170, 112, 0.4);
+    color: var(--green);
+  }
+
+  .cc-not-streaming {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .criterion-empty {
+    grid-column: 1 / -1;
+    padding: 40px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    letter-spacing: 0.05em;
+  }
+
+  /* CRITERION BADGE in search results */
+  .criterion-badge {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(232, 197, 71, 0.4);
+    background: rgba(232, 197, 71, 0.06);
+    padding: 2px 7px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .legend-dot.criterion-dot {
+    color: var(--accent);
+    font-size: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+  }
+
   /* SCROLLBAR */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
@@ -853,56 +1103,127 @@
       <div class="logo-sub">streaming availability / us</div>
     </div>
     <div class="header-right">
-      powered by tmdb
+      powered by claude + tmdb
     </div>
   </header>
 
-  <section class="search-section">
-    <span class="search-label">// search title</span>
-    <div class="search-row">
-      <input
-        class="search-input"
-        id="searchInput"
-        type="text"
-        placeholder="film title, series..."
-        autocomplete="off"
-        spellcheck="false"
-      />
-      <button class="clear-search-btn" id="clearSearch" title="Clear">✕</button>
-      <button class="search-btn" id="searchBtn">CHECK</button>
-    </div>
-    <div class="filters">
-      <button class="filter-chip active" data-filter="all">all</button>
-      <button class="filter-chip" data-filter="free">free only</button>
-      <button class="filter-chip" data-filter="subscription">subscription</button>
-    </div>
-    <div class="legend">
-      <span class="legend-item"><span class="legend-dot free">✦</span> free to watch</span>
-      <span class="legend-item"><span class="legend-dot sub">▪</span> subscription required</span>
-      <span class="legend-item"><span class="legend-dot leaving">!</span> leaving soon</span>
-      <span class="legend-item"><span class="legend-dot unavail">—</span> not streaming</span>
-    </div>
-  </section>
+  <!-- TAB NAV -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="search">search</button>
+    <button class="tab-btn" data-tab="criterion">criterion</button>
+  </nav>
 
-  <div id="resultsArea"></div>
+  <!-- SEARCH TAB -->
+  <div id="tab-search" class="tab-panel">
+    <section class="search-section">
+      <span class="search-label">// search title</span>
+      <div class="search-row">
+        <input
+          class="search-input"
+          id="searchInput"
+          type="text"
+          placeholder="film title, series..."
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="clear-search-btn" id="clearSearch" title="Clear">✕</button>
+        <button class="search-btn" id="searchBtn">CHECK</button>
+      </div>
+      <div class="filters">
+        <button class="filter-chip active" data-filter="all">all</button>
+        <button class="filter-chip" data-filter="free">free only</button>
+        <button class="filter-chip" data-filter="subscription">subscription</button>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot free">✦</span> free to watch</span>
+        <span class="legend-item"><span class="legend-dot sub">▪</span> subscription required</span>
+        <span class="legend-item"><span class="legend-dot leaving">!</span> leaving soon</span>
+        <span class="legend-item"><span class="legend-dot unavail">—</span> not streaming</span>
+        <span class="legend-item"><span class="legend-dot criterion-dot">C</span> criterion</span>
+      </div>
+    </section>
 
-  <section class="watchlist-section" id="watchlistSection">
-    <div class="section-header">
-      <span class="section-label">// watchlist</span>
-      <button class="clear-btn" id="clearWatchlist">clear all</button>
-    </div>
-    <div id="watchlistItems">
-      <div class="watchlist-empty">nothing saved yet — search a title and add it</div>
-    </div>
-  </section>
+    <div id="resultsArea"></div>
 
-  <section class="history-section" id="historySection" style="display:none">
-    <div class="section-header">
-      <span class="section-label">// recent searches</span>
-      <button class="clear-btn" id="clearHistory">clear all</button>
-    </div>
-    <div class="history-pills" id="historyPills"></div>
-  </section>
+    <section class="watchlist-section" id="watchlistSection">
+      <div class="section-header">
+        <span class="section-label">// watchlist</span>
+        <button class="clear-btn" id="clearWatchlist">clear all</button>
+      </div>
+      <div id="watchlistItems">
+        <div class="watchlist-empty">nothing saved yet — search a title and add it</div>
+      </div>
+    </section>
+
+    <section class="history-section" id="historySection" style="display:none">
+      <div class="section-header">
+        <span class="section-label">// recent searches</span>
+        <button class="clear-btn" id="clearHistory">clear all</button>
+      </div>
+      <div class="history-pills" id="historyPills"></div>
+    </section>
+  </div>
+
+  <!-- CRITERION TAB -->
+  <div id="tab-criterion" class="tab-panel" style="display:none">
+    <section class="criterion-section">
+      <div class="criterion-header">
+        <div>
+          <span class="search-label">// criterion collection</span>
+          <div class="criterion-sub">browse & filter · live streaming data via tmdb</div>
+        </div>
+        <div class="criterion-count" id="criterionCount">— films</div>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="criterion-filters">
+        <div class="cf-group">
+          <span class="cf-label">service</span>
+          <div class="cf-chips" id="cfService">
+            <button class="cf-chip active" data-service="all">all</button>
+            <button class="cf-chip" data-service="258">criterion channel</button>
+            <button class="cf-chip" data-service="384">max</button>
+            <button class="cf-chip" data-service="191">kanopy</button>
+            <button class="cf-chip" data-service="212">hoopla</button>
+            <button class="cf-chip" data-service="none">not streaming</button>
+          </div>
+        </div>
+        <div class="cf-group">
+          <span class="cf-label">decade</span>
+          <div class="cf-chips" id="cfDecade">
+            <button class="cf-chip active" data-decade="all">all</button>
+            <button class="cf-chip" data-decade="1920">20s</button>
+            <button class="cf-chip" data-decade="1930">30s</button>
+            <button class="cf-chip" data-decade="1940">40s</button>
+            <button class="cf-chip" data-decade="1950">50s</button>
+            <button class="cf-chip" data-decade="1960">60s</button>
+            <button class="cf-chip" data-decade="1970">70s</button>
+            <button class="cf-chip" data-decade="1980">80s</button>
+            <button class="cf-chip" data-decade="1990">90s</button>
+            <button class="cf-chip" data-decade="2000">00s</button>
+            <button class="cf-chip" data-decade="2010">10s</button>
+            <button class="cf-chip" data-decade="2020">20s+</button>
+          </div>
+        </div>
+        <div class="cf-group">
+          <span class="cf-label">search within</span>
+          <input class="cf-search" id="criterionSearch" type="text" placeholder="title or director..." spellcheck="false" autocomplete="off"/>
+        </div>
+      </div>
+
+      <!-- GRID -->
+      <div id="criterionGrid" class="criterion-grid">
+        <div class="criterion-loading">
+          <div class="loader-dots">
+            <div class="loader-dot"></div>
+            <div class="loader-dot"></div>
+            <div class="loader-dot"></div>
+          </div>
+          loading criterion collection...
+        </div>
+      </div>
+    </section>
+  </div>
 
   <footer>
     <span>reel.chk — 2026</span>
@@ -1067,8 +1388,9 @@ function showDisambiguation(results, query) {
           const title = r.title || r.name;
           const year = (r.release_date || r.first_air_date || '').slice(0, 4);
           const type = r.media_type === 'tv' ? 'series' : 'film';
+          const safeOverview = (r.overview || '').slice(0, 200).replace(/"/g, '&quot;');
           return `
-            <div class="disambig-row" onclick="selectResult(${r.id}, '${r.media_type}', '${title.replace(/'/g,"\\'")}', '${year}', \`${(r.overview||'').replace(/`/g,"'").slice(0,200)}\`)">
+            <div class="disambig-row" onclick="selectResult(${r.id}, ${JSON.stringify(r.media_type)}, ${JSON.stringify(title)}, ${JSON.stringify(year)}, ${JSON.stringify(safeOverview)})">
               <div class="disambig-title">${title}</div>
               <div class="disambig-meta">${year ? year + ' · ' : ''}${type}</div>
             </div>
@@ -1165,12 +1487,17 @@ Rules:
   const data = await res.json();
   const text = data.content?.find(b => b.type === 'text')?.text || '{}';
   const clean = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  try {
+    return JSON.parse(clean);
+  } catch {
+    console.warn('claudeMeta JSON parse failed, returning empty meta');
+    return { synopsis: '', franchise: null, suggestions: [] };
+  }
 }
 
 // State
 let watchlist = JSON.parse(localStorage.getItem('reelchk_watchlist') || '[]');
-let history = JSON.parse(localStorage.getItem('reelchk_history') || '[]');
+let searchHistory = JSON.parse(localStorage.getItem('reelchk_history') || '[]');
 let currentFilter = 'all';
 let lastResult = null;
 
@@ -1278,8 +1605,8 @@ function renderResult(result) {
     ? `<div class="franchise-section">
         <div class="franchise-label">// ${result.franchise.name}</div>
         ${result.franchise.entries.map((e, i) => `
-          <div class="suggestion-row" onclick="searchSuggestion('${e.title.replace(/'/g, "\\'")}')">
-            <span class="suggestion-num">0${i+1}</span>
+          <div class="suggestion-row" onclick="searchSuggestion(${JSON.stringify(e.title)})">
+            <span class="suggestion-num">${String(i+1).padStart(2,'0')}</span>
             <span class="suggestion-title">${e.title}</span>
             <span class="suggestion-service">${e.service || '—'}${e.free ? ' <span class="free-badge">free</span>' : ''}</span>
           </div>
@@ -1290,18 +1617,19 @@ function renderResult(result) {
     ? `<div class="suggestions-section">
         <div class="suggestions-label">// you might like</div>
         ${result.suggestions.map((s, i) => `
-          <div class="suggestion-row" onclick="searchSuggestion('${s.title.replace(/'/g, "\\'")}')">
-            <span class="suggestion-num">0${i+1}</span>
+          <div class="suggestion-row" onclick="searchSuggestion(${JSON.stringify(s.title)})">
+            <span class="suggestion-num">${String(i+1).padStart(2,'0')}</span>
             <span class="suggestion-title">${s.title}</span>
             <span class="suggestion-service">${s.service}${s.free ? ' <span class="free-badge">free</span>' : ''}</span>
           </div>
         `).join('')}
       </div>` : '';
 
+  const safeTitle = result.title || result.queryTitle;
   resultsArea.innerHTML = `
     <div class="results">
       <div class="results-header">
-        <div class="results-title">${result.title || result.queryTitle}</div>
+        <div class="results-title">${safeTitle}</div>
         <div class="results-meta">${result.year || ''}</div>
       </div>
       <div class="result-card">
@@ -1309,8 +1637,9 @@ function renderResult(result) {
           <div class="card-accent-bar ${isStreaming ? '' : 'unavailable'}"></div>
           <div class="card-body">
             <div class="card-title-row">
-              <span class="card-title">${result.title || result.queryTitle}</span>
+              <span class="card-title">${safeTitle}</span>
               ${result.year ? `<span class="card-year">${result.year}</span>` : ''}
+              ${result.services?.some(s => s.name === 'Criterion Channel') ? `<span class="criterion-badge">C/ criterion</span>` : ''}
               <span class="card-status ${isStreaming ? 'streaming' : 'unavailable'}">
                 ${isStreaming ? 'streaming' : 'not streaming'}
               </span>
@@ -1318,10 +1647,10 @@ function renderResult(result) {
             ${result.synopsis ? `<p class="card-synopsis">${result.synopsis}</p>` : ''}
             <div class="services-list">${servicesHTML}</div>
             <div class="card-actions">
-              <button class="add-wl-btn ${inWatchlist ? 'added' : ''}" onclick="toggleWatchlist('${(result.title || result.queryTitle).replace(/'/g, "\\'")}', ${result.streaming})">
+              <button class="add-wl-btn ${inWatchlist ? 'added' : ''}" onclick="toggleWatchlist(${JSON.stringify(safeTitle)}, ${result.streaming})">
                 ${inWatchlist ? '✓ watchlist' : '+ watchlist'}
               </button>
-              <button class="share-btn" id="shareBtn" onclick="copyShare('${(result.title || result.queryTitle).replace(/'/g, "\\'")}')">
+              <button class="share-btn" id="shareBtn" onclick="copyShare(${JSON.stringify(safeTitle)})">
                 ↗ copy link
               </button>
             </div>
@@ -1408,11 +1737,11 @@ function renderWatchlist() {
   }
   container.innerHTML = watchlist.map(item => `
     <div class="watchlist-item">
-      <span class="wl-title" onclick="searchSuggestion('${item.title.replace(/'/g, "\\'")}')">${item.title}</span>
+      <span class="wl-title" onclick="searchSuggestion(${JSON.stringify(item.title)})">${item.title}</span>
       <span class="wl-status ${item.streaming ? 'streaming' : 'unavailable'}">
         ${item.streaming ? 'streaming' : 'not streaming'}
       </span>
-      <button class="wl-remove" onclick="toggleWatchlist('${item.title.replace(/'/g, "\\'")}', ${item.streaming})">✕</button>
+      <button class="wl-remove" onclick="toggleWatchlist(${JSON.stringify(item.title)}, ${item.streaming})">✕</button>
     </div>
   `).join('');
 }
@@ -1424,28 +1753,177 @@ document.getElementById('clearWatchlist').addEventListener('click', () => {
 });
 
 document.getElementById('clearHistory').addEventListener('click', () => {
-  history = [];
-  localStorage.setItem('reelchk_history', JSON.stringify(history));
+  searchHistory = [];
+  localStorage.setItem('reelchk_history', JSON.stringify(searchHistory));
   renderHistory();
 });
 
 // HISTORY
 function addToHistory(query) {
-  history = [query, ...history.filter(h => h !== query)].slice(0, 8);
-  localStorage.setItem('reelchk_history', JSON.stringify(history));
+  searchHistory = [query, ...searchHistory.filter(h => h !== query)].slice(0, 8);
+  localStorage.setItem('reelchk_history', JSON.stringify(searchHistory));
   renderHistory();
 }
 
 function renderHistory() {
-  if (history.length === 0) {
+  if (searchHistory.length === 0) {
     document.getElementById('historySection').style.display = 'none';
     return;
   }
   document.getElementById('historySection').style.display = 'block';
-  document.getElementById('historyPills').innerHTML = history.map(h => `
-    <button class="history-pill" onclick="searchSuggestion('${h.replace(/'/g, "\\'")}')"> ${h}</button>
+  document.getElementById('historyPills').innerHTML = searchHistory.map(h => `
+    <button class="history-pill" onclick="searchSuggestion(${JSON.stringify(h)})">${h}</button>
   `).join('');
 }
+
+// TAB SWITCHING
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById(`tab-${tab}`).style.display = 'block';
+    if (tab === 'criterion' && !criterionLoaded) loadCriterion();
+  });
+});
+
+// CRITERION STATE
+let criterionLoaded = false;
+let criterionFilms = [];
+let cfServiceFilter = 'all';
+let cfDecadeFilter = 'all';
+let cfSearchQuery = '';
+
+async function loadCriterion() {
+  criterionLoaded = true;
+  const grid = document.getElementById('criterionGrid');
+  grid.innerHTML = `<div class="criterion-loading"><div class="loader-dots"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>fetching criterion catalog...</div>`;
+
+  try {
+    let allResults = [];
+    let page = 1;
+    let totalPages = 1;
+
+    while (page <= totalPages && page <= 20) {
+      const res = await fetch(
+        `${TMDB_BASE}/discover/movie?with_watch_providers=258&watch_region=US&language=en-US&sort_by=original_title.asc&page=${page}`,
+        { headers: TMDB_HEADERS }
+      );
+      const data = await res.json();
+      totalPages = Math.min(data.total_pages || 1, 20);
+      allResults = allResults.concat(data.results || []);
+      page++;
+      grid.innerHTML = `<div class="criterion-loading"><div class="loader-dots"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>loading ${allResults.length} films...</div>`;
+    }
+
+    criterionFilms = allResults.map(r => ({
+      id: r.id,
+      title: r.title,
+      director: '',
+      year: (r.release_date || '').slice(0, 4),
+      overview: r.overview || '',
+      services: []
+    }));
+
+    // Fetch providers in batches of 5 with delay to respect TMDB rate limits
+    const batchSize = 5;
+    for (let i = 0; i < criterionFilms.length; i += batchSize) {
+      const batch = criterionFilms.slice(i, i + batchSize);
+      const results = await Promise.all(batch.map(f => tmdbProviders(f.id, 'movie').catch(() => [])));
+      results.forEach((services, j) => { criterionFilms[i + j].services = services; });
+      grid.innerHTML = `<div class="criterion-loading"><div class="loader-dots"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>loading providers ${Math.min(i + batchSize, criterionFilms.length)}/${criterionFilms.length}...</div>`;
+      // Respect TMDB rate limit — 50 req/s, batch of 5 = safe with 150ms gap
+      if (i + batchSize < criterionFilms.length) await new Promise(r => setTimeout(r, 150));
+    }
+
+    document.getElementById('criterionCount').textContent = `${criterionFilms.length} films`;
+    renderCriterionGrid();
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = `<div class="criterion-loading" style="color:var(--red)">— error loading. try again.</div>`;
+  }
+}
+
+function renderCriterionGrid() {
+  const grid = document.getElementById('criterionGrid');
+  let films = [...criterionFilms];
+
+  if (cfSearchQuery) {
+    const q = cfSearchQuery.toLowerCase();
+    films = films.filter(f => f.title.toLowerCase().includes(q) || f.director.toLowerCase().includes(q));
+  }
+
+  if (cfDecadeFilter !== 'all') {
+    const decade = parseInt(cfDecadeFilter);
+    films = films.filter(f => { const y = parseInt(f.year); return y >= decade && y < decade + 10; });
+  }
+
+  if (cfServiceFilter !== 'all') {
+    if (cfServiceFilter === 'none') {
+      films = films.filter(f => f.services.length === 0);
+    } else {
+      const providerName = (PROVIDER_NAMES[parseInt(cfServiceFilter)] || '').toLowerCase();
+      if (providerName) {
+        films = films.filter(f => f.services.some(s => s.name.toLowerCase() === providerName));
+      }
+    }
+  }
+
+  document.getElementById('criterionCount').textContent = `${films.length} films`;
+
+  if (films.length === 0) {
+    grid.innerHTML = `<div class="criterion-empty">no films match these filters</div>`;
+    return;
+  }
+
+  grid.innerHTML = films.map(f => {
+    const servicesHTML = f.services.length > 0
+      ? f.services.map(s => `<span class="cc-service-tag ${s.free ? 'free' : ''}">${s.name}</span>`).join('')
+      : `<span class="cc-not-streaming">not streaming</span>`;
+    return `
+      <div class="criterion-card" onclick="criterionCardClick(${f.id}, ${JSON.stringify(f.title)}, ${JSON.stringify(f.year)}, ${JSON.stringify(f.overview.slice(0,200))})">
+        <div class="cc-spine">criterion</div>
+        <div class="cc-title">${f.title}</div>
+        <div class="cc-year">${f.year}</div>
+        <div class="cc-services">${servicesHTML}</div>
+      </div>`;
+  }).join('');
+}
+
+function criterionCardClick(id, title, year, overview) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+  document.querySelector('[data-tab="search"]').classList.add('active');
+  document.getElementById('tab-search').style.display = 'block';
+  searchInput.value = title;
+  clearSearchBtn.classList.add('visible');
+  selectResult(id, 'movie', title, year, overview);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+// Criterion filter chips
+document.querySelectorAll('#cfService .cf-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#cfService .cf-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    cfServiceFilter = chip.dataset.service;
+    if (criterionLoaded && criterionFilms.length) renderCriterionGrid();
+  });
+});
+
+document.querySelectorAll('#cfDecade .cf-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#cfDecade .cf-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    cfDecadeFilter = chip.dataset.decade;
+    if (criterionLoaded && criterionFilms.length) renderCriterionGrid();
+  });
+});
+
+document.getElementById('criterionSearch').addEventListener('input', e => {
+  cfSearchQuery = e.target.value.trim();
+  if (criterionLoaded && criterionFilms.length) renderCriterionGrid();
+});
 
 // INIT
 renderWatchlist();
