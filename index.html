@@ -1103,7 +1103,7 @@
       <div class="logo-sub">streaming availability / us</div>
     </div>
     <div class="header-right">
-      powered by tmdb 
+      powered by claude + tmdb
     </div>
   </header>
 
@@ -1390,7 +1390,7 @@ function showDisambiguation(results, query) {
           const type = r.media_type === 'tv' ? 'series' : 'film';
           const safeOverview = (r.overview || '').slice(0, 200).replace(/"/g, '&quot;');
           return `
-            <div class="disambig-row" onclick="selectResult(${r.id}, ${JSON.stringify(r.media_type)}, ${JSON.stringify(title)}, ${JSON.stringify(year)}, ${JSON.stringify(safeOverview)})">
+            <div class="disambig-row" onclick="selectResult(${r.id}, ${jq(r.media_type)}, ${jq(title)}, ${jq(year)}, ${jq(safeOverview)})">
               <div class="disambig-title">${title}</div>
               <div class="disambig-meta">${year ? year + ' · ' : ''}${type}</div>
             </div>
@@ -1494,6 +1494,9 @@ Rules:
     return { synopsis: '', franchise: null, suggestions: [] };
   }
 }
+
+// HTML-attribute-safe JSON serialiser — prevents double-quotes from breaking onclick="..."
+const jq = val => JSON.stringify(val).replace(/"/g, '&quot;');
 
 // State
 let watchlist = JSON.parse(localStorage.getItem('reelchk_watchlist') || '[]');
@@ -1605,7 +1608,7 @@ function renderResult(result) {
     ? `<div class="franchise-section">
         <div class="franchise-label">// ${result.franchise.name}</div>
         ${result.franchise.entries.map((e, i) => `
-          <div class="suggestion-row" onclick="searchSuggestion(${JSON.stringify(e.title)})">
+          <div class="suggestion-row" onclick="searchSuggestion(${jq(e.title)})">
             <span class="suggestion-num">${String(i+1).padStart(2,'0')}</span>
             <span class="suggestion-title">${e.title}</span>
             <span class="suggestion-service">${e.service || '—'}${e.free ? ' <span class="free-badge">free</span>' : ''}</span>
@@ -1617,7 +1620,7 @@ function renderResult(result) {
     ? `<div class="suggestions-section">
         <div class="suggestions-label">// you might like</div>
         ${result.suggestions.map((s, i) => `
-          <div class="suggestion-row" onclick="searchSuggestion(${JSON.stringify(s.title)})">
+          <div class="suggestion-row" onclick="searchSuggestion(${jq(s.title)})">
             <span class="suggestion-num">${String(i+1).padStart(2,'0')}</span>
             <span class="suggestion-title">${s.title}</span>
             <span class="suggestion-service">${s.service}${s.free ? ' <span class="free-badge">free</span>' : ''}</span>
@@ -1647,10 +1650,10 @@ function renderResult(result) {
             ${result.synopsis ? `<p class="card-synopsis">${result.synopsis}</p>` : ''}
             <div class="services-list">${servicesHTML}</div>
             <div class="card-actions">
-              <button class="add-wl-btn ${inWatchlist ? 'added' : ''}" onclick="toggleWatchlist(${JSON.stringify(safeTitle)}, ${result.streaming})">
+              <button class="add-wl-btn ${inWatchlist ? 'added' : ''}" onclick="toggleWatchlist(${jq(safeTitle)}, ${result.streaming})">
                 ${inWatchlist ? '✓ watchlist' : '+ watchlist'}
               </button>
-              <button class="share-btn" id="shareBtn" onclick="copyShare(${JSON.stringify(safeTitle)})">
+              <button class="share-btn" id="shareBtn" onclick="copyShare(${jq(safeTitle)})">
                 ↗ copy link
               </button>
             </div>
@@ -1737,11 +1740,11 @@ function renderWatchlist() {
   }
   container.innerHTML = watchlist.map(item => `
     <div class="watchlist-item">
-      <span class="wl-title" onclick="searchSuggestion(${JSON.stringify(item.title)})">${item.title}</span>
+      <span class="wl-title" onclick="searchSuggestion(${jq(item.title)})">${item.title}</span>
       <span class="wl-status ${item.streaming ? 'streaming' : 'unavailable'}">
         ${item.streaming ? 'streaming' : 'not streaming'}
       </span>
-      <button class="wl-remove" onclick="toggleWatchlist(${JSON.stringify(item.title)}, ${item.streaming})">✕</button>
+      <button class="wl-remove" onclick="toggleWatchlist(${jq(item.title)}, ${item.streaming})">✕</button>
     </div>
   `).join('');
 }
@@ -1772,7 +1775,7 @@ function renderHistory() {
   }
   document.getElementById('historySection').style.display = 'block';
   document.getElementById('historyPills').innerHTML = searchHistory.map(h => `
-    <button class="history-pill" onclick="searchSuggestion(${JSON.stringify(h)})">${h}</button>
+    <button class="history-pill" onclick="searchSuggestion(${jq(h)})">${h}</button>
   `).join('');
 }
 
@@ -1882,7 +1885,7 @@ function renderCriterionGrid() {
       ? f.services.map(s => `<span class="cc-service-tag ${s.free ? 'free' : ''}">${s.name}</span>`).join('')
       : `<span class="cc-not-streaming">not streaming</span>`;
     return `
-      <div class="criterion-card" onclick="criterionCardClick(${f.id}, ${JSON.stringify(f.title)}, ${JSON.stringify(f.year)}, ${JSON.stringify(f.overview.slice(0,200))})">
+      <div class="criterion-card" onclick="criterionCardClick(${f.id}, ${jq(f.title)}, ${jq(f.year)}, ${jq(f.overview.slice(0,200))})">
         <div class="cc-spine">criterion</div>
         <div class="cc-title">${f.title}</div>
         <div class="cc-year">${f.year}</div>
