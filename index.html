@@ -4,13 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>reel.chk</title>
+<meta name="description" content="Check where a movie or show is streaming in the US, filter by free vs. subscription, and browse the Criterion Collection's current streaming availability. Powered by TMDB.">
+<meta property="og:title" content="reel.chk — streaming availability checker">
+<meta property="og:description" content="Check where a movie or show is streaming in the US, filter by free vs. subscription, and browse the Criterion Collection's current streaming availability.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://activecatalyst.github.io/reelchk/">
+<meta property="og:image" content="https://activecatalyst.github.io/reelchk/icons/favicon-512.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://activecatalyst.github.io/reelchk/">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#111110">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="reel.chk">
 <link rel="icon" href="/reelchk/icons/favicon.ico" sizes="any">
-<link rel="icon" href="/reelchk/icons/reel-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/reelchk/icons/favicon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -845,6 +852,33 @@
     letter-spacing: 0.05em;
   }
 
+  .criterion-count-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .criterion-refresh {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+
+  .criterion-refresh:hover {
+    color: var(--text);
+    border-color: var(--border-bright);
+  }
+
+  .criterion-refresh:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
   /* CRITERION FILTERS */
   .criterion-filters {
     display: flex;
@@ -1173,7 +1207,10 @@
           <span class="search-label">// criterion collection</span>
           <div class="criterion-sub">browse & filter · live streaming data via tmdb</div>
         </div>
-        <div class="criterion-count" id="criterionCount">— films</div>
+        <div class="criterion-count-wrap">
+          <div class="criterion-count" id="criterionCount">— films</div>
+          <button type="button" id="criterionRefresh" class="criterion-refresh" title="re-fetch catalog from tmdb (cached ~6h)">⟳ refresh</button>
+        </div>
       </div>
 
       <!-- FILTERS -->
@@ -1235,9 +1272,54 @@
 
 <script>
 const ANTHROPIC_API = "https://reelchk-proxy.bk855b7qg8.workers.dev";
-const TMDB_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyNWIxYzJkMTc0NDMxMjljZWYwMTk1OGY4MzlmMTIxZiIsIm5iZiI6MTc3NjkzMDk3OC40NzQsInN1YiI6IjY5ZTlkMGEyYjk3ZGQyNzJmZGJjYjNjNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.xahHJog2JWyFHADPZIcYwANT9Zv0mok9PNmENM64vTw";
-const TMDB_BASE = "https://api.themoviedb.org/3";
-const TMDB_HEADERS = { Authorization: `Bearer ${TMDB_TOKEN}`, "Content-Type": "application/json" };
+// TMDB calls are routed through a Cloudflare Worker (see tmdb-proxy-worker.js)
+// so the TMDB bearer token stays server-side and is never shipped to the browser.
+// PLACEHOLDER — this is a guess based on your existing worker's subdomain.
+// After you deploy tmdb-proxy-worker.js, replace this with the exact URL
+// Wrangler/the dashboard gives you.
+const TMDB_BASE = "https://reelchk-tmdb-proxy.bk855b7qg8.workers.dev";
+const TMDB_HEADERS = { "Content-Type": "application/json" };
+
+// Small helper: fetch + throw a descriptive error on non-2xx responses instead
+// of silently handing a 429/401/500 body to res.json(). Also auto-retries once
+// on 429 (rate limited) — a transient rate limit shouldn't get treated the
+// same as "TMDB genuinely has no data for this title."
+async function tmdbFetch(url, retriesLeft = 1) {
+  const res = await fetch(url, { headers: TMDB_HEADERS });
+  if (res.status === 429 && retriesLeft > 0) {
+    const retryAfter = parseFloat(res.headers.get('Retry-After')) || 1;
+    await new Promise(r => setTimeout(r, retryAfter * 1000));
+    return tmdbFetch(url, retriesLeft - 1);
+  }
+  if (!res.ok) {
+    if (res.status === 429) throw new Error('rate limited by tmdb — try again in a moment');
+    if (res.status === 401 || res.status === 403) throw new Error('tmdb auth error — check proxy token');
+    throw new Error(`tmdb request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+// Wraps tmdbProviders with its own small retry loop (separate from tmdbFetch's
+// 429 retry) so a one-off network blip or non-429 hiccup doesn't silently
+// render a title as "not streaming" — the single biggest source of false
+// negatives when browsing large batches (e.g. the Criterion catalog).
+// Returns { services, failed } so callers can tell "genuinely not streaming"
+// apart from "we gave up after retrying."
+async function providersWithRetry(id, mediaType, attempts = 3) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const services = await tmdbProviders(id, mediaType);
+      return { services, failed: false };
+    } catch (err) {
+      if (i === attempts - 1) {
+        console.warn(`provider lookup failed for ${mediaType} ${id} after ${attempts} attempts:`, err.message || err);
+        return { services: [], failed: true };
+      }
+      await new Promise(r => setTimeout(r, 400 * (i + 1)));
+    }
+  }
+  return { services: [], failed: true };
+}
 
 // Free provider IDs from TMDB US catalog (exhaustive)
 const FREE_PROVIDER_IDS = new Set([
@@ -1348,11 +1430,10 @@ function resolveProvider(p, forceFree = false) {
 
 async function tmdbSearch(query) {
   // Fetch 2 pages to get more results
-  const [res1, res2] = await Promise.all([
-    fetch(`${TMDB_BASE}/search/multi?query=${encodeURIComponent(query)}&language=en-US&page=1`, { headers: TMDB_HEADERS }),
-    fetch(`${TMDB_BASE}/search/multi?query=${encodeURIComponent(query)}&language=en-US&page=2`, { headers: TMDB_HEADERS }),
+  const [d1, d2] = await Promise.all([
+    tmdbFetch(`${TMDB_BASE}/search/multi?query=${encodeURIComponent(query)}&language=en-US&page=1`),
+    tmdbFetch(`${TMDB_BASE}/search/multi?query=${encodeURIComponent(query)}&language=en-US&page=2`),
   ]);
-  const [d1, d2] = await Promise.all([res1.json(), res2.json()]);
 
   const combined = [
     ...(d1.results || []),
@@ -1406,7 +1487,7 @@ function showDisambiguation(results, query) {
 async function selectResult(id, mediaType, title, year, overview) {
   showLoader('fetching streaming data...');
   try {
-    const services = await tmdbProviders(id, mediaType);
+    const { services } = await providersWithRetry(id, mediaType);
     showLoader('generating synopsis...');
     const meta = await claudeMeta(title, year, mediaType, services);
     const result = {
@@ -1422,14 +1503,13 @@ async function selectResult(id, mediaType, title, year, overview) {
     renderResult(result);
   } catch (err) {
     console.error(err);
-    showError('error fetching data. try again.');
+    showError(err.message && err.message !== 'Failed to fetch' ? err.message : 'error fetching data. try again.');
   }
 }
 
 async function tmdbProviders(id, mediaType) {
   const url = `${TMDB_BASE}/${mediaType}/${id}/watch/providers`;
-  const res = await fetch(url, { headers: TMDB_HEADERS });
-  const data = await res.json();
+  const data = await tmdbFetch(url);
   const us = data.results?.US;
   if (!us) return [];
 
@@ -1485,6 +1565,10 @@ Rules:
       messages: [{ role: 'user', content: `Title: "${title}" (${year}, ${mediaType}). Currently streaming on: ${serviceList}.` }]
     })
   });
+  if (!res.ok) {
+    console.warn(`claude proxy request failed (${res.status})`);
+    return { synopsis: '', franchise: null, suggestions: [] };
+  }
   const data = await res.json();
   const text = data.content?.find(b => b.type === 'text')?.text || '{}';
   const clean = text.replace(/```json|```/g, '').trim();
@@ -1539,9 +1623,17 @@ document.querySelectorAll('.filter-chip').forEach(chip => {
 searchBtn.addEventListener('click', doSearch);
 searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 
+let searchInFlight = false;
+
 async function doSearch() {
+  if (searchInFlight) return; // ignore repeat submits while a search is running
+
   const query = searchInput.value.trim();
   if (!query) return;
+
+  searchInFlight = true;
+  searchBtn.disabled = true;
+  searchInput.disabled = true;
 
   addToHistory(query);
   showLoader('searching tmdb...');
@@ -1557,7 +1649,7 @@ async function doSearch() {
       const displayTitle = r.title || r.name;
       const year = (r.release_date || r.first_air_date || '').slice(0, 4);
       showLoader('fetching streaming data...');
-      const services = await tmdbProviders(r.id, r.media_type);
+      const { services } = await providersWithRetry(r.id, r.media_type);
       showLoader('generating synopsis...');
       const meta = await claudeMeta(displayTitle, year, r.media_type, services);
       const result = {
@@ -1577,7 +1669,11 @@ async function doSearch() {
     }
   } catch (err) {
     console.error(err);
-    showError('error fetching data. try again.');
+    showError(err.message && err.message !== 'Failed to fetch' ? err.message : 'error fetching data. try again.');
+  } finally {
+    searchInFlight = false;
+    searchBtn.disabled = false;
+    searchInput.disabled = false;
   }
 }
 
@@ -1792,6 +1888,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+document.getElementById('criterionRefresh').addEventListener('click', async () => {
+  const btn = document.getElementById('criterionRefresh');
+  btn.disabled = true;
+  await loadCriterion({ forceRefresh: true });
+  btn.disabled = false;
+});
+
 // CRITERION STATE
 let criterionLoaded = false;
 let criterionFilms = [];
@@ -1799,9 +1902,42 @@ let cfServiceFilter = 'all';
 let cfDecadeFilter = 'all';
 let cfSearchQuery = '';
 
-async function loadCriterion() {
+const CRITERION_CACHE_KEY = 'reelchk_criterion_cache';
+const CRITERION_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours — catalog/providers don't change minute to minute
+
+function loadCriterionFromCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(CRITERION_CACHE_KEY) || 'null');
+    if (!cached || !Array.isArray(cached.films)) return null;
+    if (Date.now() - cached.savedAt > CRITERION_CACHE_TTL_MS) return null;
+    return cached.films;
+  } catch {
+    return null;
+  }
+}
+
+function saveCriterionToCache(films) {
+  try {
+    localStorage.setItem(CRITERION_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), films }));
+  } catch (err) {
+    console.warn('could not cache criterion catalog:', err);
+  }
+}
+
+async function loadCriterion({ forceRefresh = false } = {}) {
   criterionLoaded = true;
   const grid = document.getElementById('criterionGrid');
+
+  if (!forceRefresh) {
+    const cached = loadCriterionFromCache();
+    if (cached) {
+      criterionFilms = cached;
+      document.getElementById('criterionCount').textContent = `${criterionFilms.length} films`;
+      renderCriterionGrid();
+      return;
+    }
+  }
+
   grid.innerHTML = `<div class="criterion-loading"><div class="loader-dots"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>fetching criterion catalog...</div>`;
 
   try {
@@ -1810,11 +1946,9 @@ async function loadCriterion() {
     let totalPages = 1;
 
     while (page <= totalPages && page <= 20) {
-      const res = await fetch(
-        `${TMDB_BASE}/discover/movie?with_watch_providers=258&watch_region=US&language=en-US&sort_by=original_title.asc&page=${page}`,
-        { headers: TMDB_HEADERS }
+      const data = await tmdbFetch(
+        `${TMDB_BASE}/discover/movie?with_watch_providers=258&watch_region=US&language=en-US&sort_by=original_title.asc&page=${page}`
       );
-      const data = await res.json();
       totalPages = Math.min(data.total_pages || 1, 20);
       allResults = allResults.concat(data.results || []);
       page++;
@@ -1831,21 +1965,28 @@ async function loadCriterion() {
     }));
 
     // Fetch providers in batches of 5 with delay to respect TMDB rate limits
+    let providerFailures = 0;
     const batchSize = 5;
     for (let i = 0; i < criterionFilms.length; i += batchSize) {
       const batch = criterionFilms.slice(i, i + batchSize);
-      const results = await Promise.all(batch.map(f => tmdbProviders(f.id, 'movie').catch(() => [])));
-      results.forEach((services, j) => { criterionFilms[i + j].services = services; });
+      const results = await Promise.all(batch.map(f => providersWithRetry(f.id, 'movie')));
+      results.forEach(({ failed }) => { if (failed) providerFailures++; });
+      results.forEach(({ services }, j) => { criterionFilms[i + j].services = services; });
       grid.innerHTML = `<div class="criterion-loading"><div class="loader-dots"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>loading providers ${Math.min(i + batchSize, criterionFilms.length)}/${criterionFilms.length}...</div>`;
       // Respect TMDB rate limit — 50 req/s, batch of 5 = safe with 150ms gap
       if (i + batchSize < criterionFilms.length) await new Promise(r => setTimeout(r, 150));
     }
+    if (providerFailures > 0) {
+      // Failed lookups render as "not streaming" below — flag it so that's not mistaken for real data.
+      console.warn(`${providerFailures} provider lookup(s) failed and are showing as "not streaming"`);
+    }
 
     document.getElementById('criterionCount').textContent = `${criterionFilms.length} films`;
+    saveCriterionToCache(criterionFilms);
     renderCriterionGrid();
   } catch (err) {
     console.error(err);
-    grid.innerHTML = `<div class="criterion-loading" style="color:var(--red)">— error loading. try again.</div>`;
+    grid.innerHTML = `<div class="criterion-loading" style="color:var(--red)">— ${err.message || 'error loading. try again.'}</div>`;
   }
 }
 
